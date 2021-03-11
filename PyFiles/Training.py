@@ -13,19 +13,19 @@ def sample_arrays(X, generator, batch_size, upscaling_dimension, device):
     X_minibatch.requires_grad = True
 
     # We sample n=batch_size points from the generator
-    z_minibatch = torch.Tensor(0, upscaling_dimension).to(device)
+    quantum_gen_minibatch = torch.Tensor(0, upscaling_dimension).to(device)
     for k in range(batch_size):
         sample = generator().unsqueeze(0)
-        z_minibatch = torch.cat((z_minibatch, sample))
+        quantum_gen_minibatch = torch.cat((quantum_gen_minibatch, sample))
 
     # We sample n=batch_size noise points
     epsilons = torch.Tensor(batch_size).uniform_(0, 1).to(device)
-    return X_minibatch, z_minibatch, epsilons
+    return X_minibatch, quantum_gen_minibatch, epsilons
 
 
-def get_X_hat(X_minibatch, z_minibatch, epsilons):
+def get_X_hat(X_minibatch, quantum_gen_minibatch, epsilons):
     eps_new_axis = epsilons[:, np.newaxis]
-    X_hat = eps_new_axis * (X_minibatch - z_minibatch)
+    X_hat = eps_new_axis * (X_minibatch - quantum_gen_minibatch)
     return X_hat
 
 
@@ -41,10 +41,10 @@ def critic_grad_wrt_inputs(X_hat_minibatch, critic, device):
     return gradients
 
 
-def critic_loss(X_minibatch, X_hat_minibatch, z_minibatch, critic, device, l=10):
+def critic_loss(X_minibatch, X_hat_minibatch, quantum_gen_minibatch, critic, device, l=10):
     N = len(X_minibatch)
     critic_grad_x_hat = critic_grad_wrt_inputs(X_hat_minibatch, critic, device)
-    L_c = critic(z_minibatch) - critic(X_minibatch)
+    L_c = critic(quantum_gen_minibatch) - critic(X_minibatch)
     L_c = L_c.flatten()
     grad_norm = torch.linalg.norm(critic_grad_x_hat, ord=2, dim=1)
     L_c += l * (grad_norm - 1) ** 2
@@ -71,12 +71,12 @@ def train_quantum_anogan(X, generator: QuantumGenerator, critic: Critic, device,
     critic_optimizer = torch.optim.Adam(critic.parameters())
     for i in range(n_iter):
         for j in range(n_critic):
-            X_minibatch, z_minibatch, epsilons = sample_arrays(X, generator, batch_size,
+            X_minibatch, quantum_gen_minibatch, epsilons = sample_arrays(X, generator, batch_size,
                                                                upscaling_dimension, device)
 
-            X_hat_minibatch = get_X_hat(X_minibatch, z_minibatch, epsilons)
+            X_hat_minibatch = get_X_hat(X_minibatch, quantum_gen_minibatch, epsilons)
 
-            crit_loss = critic_loss(X_minibatch, X_hat_minibatch, z_minibatch, critic, device)
+            crit_loss = critic_loss(X_minibatch, X_hat_minibatch, quantum_gen_minibatch, critic, device)
             print("Iteration {}\tCritic Minibatch:{}\tCritic Loss:{}".format(i + 1,
                                                                              j + 1, crit_loss.item()))
             crit_loss.backward()
