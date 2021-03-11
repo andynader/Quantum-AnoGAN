@@ -23,6 +23,7 @@ critic = critic.to(device)
 X_minibatch, z_minibatch, epsilons = sample_arrays(X_normal, quantum_gen, batch_size,
                                                    upscaling_dimension, device)
 
-X_hat = get_X_hat(X_minibatch, z_minibatch, epsilons)
-print(X_hat)
-print(X_hat.shape)
+X_hat_minibatch = get_X_hat(X_minibatch, z_minibatch, epsilons)
+
+mean_L_C = critic_loss(X_minibatch, X_hat_minibatch, z_minibatch, critic, device)
+print(mean_L_C)
