@@ -20,10 +20,12 @@ samples = [quantum_gen, quantum_gen]
 critic = Critic(data_dimension=upscaling_dimension)
 critic = critic.to(device)
 
-X_minibatch, z_minibatch, epsilons = sample_arrays(X_normal, quantum_gen, batch_size,
-                                                   upscaling_dimension, device)
+# X_minibatch, z_minibatch, epsilons = sample_arrays(X_normal, quantum_gen, batch_size,
+#                                                   upscaling_dimension, device)
+#
+# X_hat_minibatch = get_X_hat(X_minibatch, z_minibatch, epsilons)
+#
+# mean_L_C = critic_loss(X_minibatch, X_hat_minibatch, z_minibatch, critic, device)
+# print(mean_L_C)
 
-X_hat_minibatch = get_X_hat(X_minibatch, z_minibatch, epsilons)
-
-mean_L_C = critic_loss(X_minibatch, X_hat_minibatch, z_minibatch, critic, device)
-print(mean_L_C)
+train_quantum_anogan(X_normal, quantum_gen, critic, device, n_iter=10, batch_size=64, n_critic=5)
