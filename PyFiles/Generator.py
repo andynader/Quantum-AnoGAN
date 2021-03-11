@@ -48,7 +48,8 @@ class QuantumGenerator(nn.Module):
 
         self.device = device
         self.latent_dim = latent_dim
-        # We initalize and store the quantum classifier's weights
+        self.upscaling_dimension=upscaling_dimension
+        # We initialize and store the quantum classifier's weights
         W = torch.Tensor(num_layers, latent_dim).uniform_(-np.pi, np.pi).to(self.device)
 
         # We specify that the quantum classifier weights parameters of the

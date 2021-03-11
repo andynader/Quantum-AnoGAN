@@ -12,7 +12,6 @@ class Critic(nn.Module):
         if hidden_dimensionality is None:
             hidden_dimensionality = [16, 8]
 
-        self.flatten = nn.Flatten()
         self.layer_dimensions = [data_dimension] + hidden_dimensionality + [1]
 
         layers = []
