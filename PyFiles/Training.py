@@ -51,14 +51,24 @@ def critic_loss(X_minibatch, X_hat_minibatch, z_minibatch, critic, device, l=10)
     return torch.sum(L_c) / N
 
 
+def generator_loss(generator, critic, batch_size, device):
+    upscaling_dimension = generator.upscaling_dimension
+    quantum_gen_minibatch = torch.Tensor(0, upscaling_dimension).to(device)
+    for k in range(batch_size):
+        sample = generator().unsqueeze(0)
+        quantum_gen_minibatch = torch.cat((quantum_gen_minibatch, sample))
+    L_g = -critic(quantum_gen_minibatch)
+    return torch.sum(L_g) / batch_size
+
+
 def train_quantum_anogan(X, generator: QuantumGenerator, critic: Critic, device, n_iter=1, batch_size=64,
                          n_critic=5):
     num_features = X.shape[1]
     upscaling_dimension = generator.upscaling_dimension
 
     assert upscaling_dimension == num_features
-    generator_optimizer=torch.optim.Adam(generator.parameters())
-    critic_optimizer=torch.optim.Adam(critic.parameters())
+    generator_optimizer = torch.optim.Adam(generator.parameters())
+    critic_optimizer = torch.optim.Adam(critic.parameters())
     for i in range(n_iter):
         for j in range(n_critic):
             X_minibatch, z_minibatch, epsilons = sample_arrays(X, generator, batch_size,
@@ -73,4 +83,7 @@ def train_quantum_anogan(X, generator: QuantumGenerator, critic: Critic, device,
             critic_optimizer.zero_grad()
             critic_optimizer.step()
 
-
+        gen_loss = generator_loss(generator, critic, batch_size, device)
+        gen_loss.backward()
+        generator_optimizer.zero_grad()
+        generator_optimizer.step()
