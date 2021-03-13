@@ -70,20 +70,22 @@ def train_quantum_anogan(X, generator: QuantumGenerator, critic: Critic, device,
     generator_optimizer = torch.optim.Adam(generator.parameters())
     critic_optimizer = torch.optim.Adam(critic.parameters())
     for i in range(n_iter):
+        print("Iteration ", i + 1)
         for j in range(n_critic):
             X_minibatch, quantum_gen_minibatch, epsilons = sample_arrays(X, generator, batch_size,
-                                                               upscaling_dimension, device)
+                                                                         upscaling_dimension, device)
 
             X_hat_minibatch = get_X_hat(X_minibatch, quantum_gen_minibatch, epsilons)
 
             crit_loss = critic_loss(X_minibatch, X_hat_minibatch, quantum_gen_minibatch, critic, device)
-            print("Iteration {}\tCritic Minibatch:{}\tCritic Loss:{}".format(i + 1,
-                                                                             j + 1, crit_loss.item()))
-            crit_loss.backward()
+            # print("Iteration {}\tCritic Minibatch:{}\tCritic Loss:{}".format(i + 1,
+            #                                                                 j + 1, crit_loss.item()))
             critic_optimizer.zero_grad()
+            crit_loss.backward()
             critic_optimizer.step()
 
         gen_loss = generator_loss(generator, critic, batch_size, device)
-        gen_loss.backward()
         generator_optimizer.zero_grad()
+        gen_loss.backward()
         generator_optimizer.step()
+    return generator, critic
