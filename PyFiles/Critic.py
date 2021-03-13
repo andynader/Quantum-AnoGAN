@@ -22,6 +22,8 @@ class Critic(nn.Module):
             linear_layer = nn.Linear(in_dim, out_dim)
             xavier_uniform_(linear_layer.weight)
             layers.append(linear_layer)
+            if i != len(self.layer_dimensions) - 2:
+               nn.ReLU()
 
         self.network = nn.Sequential(*layers)
 

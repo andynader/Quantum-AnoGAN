@@ -1,5 +1,6 @@
 from Generator import *
 from Critic import *
+from Utility import *
 
 
 # All the sampled arrays returned are torch tensors.
@@ -25,7 +26,7 @@ def sample_arrays(X, generator, batch_size, upscaling_dimension, device):
 
 def get_X_hat(X_minibatch, quantum_gen_minibatch, epsilons):
     eps_new_axis = epsilons[:, np.newaxis]
-    X_hat = eps_new_axis * (X_minibatch - quantum_gen_minibatch)
+    X_hat = X_minibatch + eps_new_axis * (quantum_gen_minibatch - X_minibatch)
     return X_hat
 
 
@@ -57,18 +58,26 @@ def generator_loss(generator, critic, batch_size, device):
     for k in range(batch_size):
         sample = generator().unsqueeze(0)
         quantum_gen_minibatch = torch.cat((quantum_gen_minibatch, sample))
-    L_g = -critic(quantum_gen_minibatch)
+    L_g = -critic(quantum_gen_minibatch).flatten()
     return torch.sum(L_g) / batch_size
 
 
+def monitor_generated_samples(generator, n_monitoring_samples=10):
+    sum_of_samples = scinp.zeros(generator.upscaling_dimension)
+    for i in range(n_monitoring_samples):
+        sum_of_samples += generator().cpu().detach().numpy()
+    average_sample = sum_of_samples / n_monitoring_samples
+    print("Generated Average Sample:", average_sample)
+
+
 def train_quantum_anogan(X, generator: QuantumGenerator, critic: Critic, device, n_iter=1, batch_size=64,
-                         n_critic=5):
+                         n_critic=5, n_monitoring_samples=3):
     num_features = X.shape[1]
     upscaling_dimension = generator.upscaling_dimension
 
     assert upscaling_dimension == num_features
-    generator_optimizer = torch.optim.Adam(generator.parameters())
-    critic_optimizer = torch.optim.Adam(critic.parameters())
+    generator_optimizer = torch.optim.Adam(generator.parameters(), lr=0.001, betas=(0.5, 0.999), eps=1e-7)
+    critic_optimizer = torch.optim.Adam(critic.parameters(), lr=0.001, betas=(0.5, 0.999), eps=1e-7)
     for i in range(n_iter):
         print("Iteration ", i + 1)
         for j in range(n_critic):
@@ -88,4 +97,6 @@ def train_quantum_anogan(X, generator: QuantumGenerator, critic: Critic, device,
         generator_optimizer.zero_grad()
         gen_loss.backward()
         generator_optimizer.step()
+        # print_parameters(generator)
+        monitor_generated_samples(generator, n_monitoring_samples)
     return generator, critic
