@@ -1,4 +1,4 @@
-from Generator import *
+from QuantumGenerator import *
 from Critic import *
 import unittest
 

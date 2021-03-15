@@ -1,7 +1,5 @@
 import pennylane as qml
 from pennylane import numpy as np
-from pennylane.templates import StronglyEntanglingLayers
-from pennylane.init import strong_ent_layers_normal
 import numpy as scinp
 
 import torch
@@ -32,7 +30,7 @@ def layer(W, rot_bases):
         qml.CNOT(wires=[i, i + 1])
 
 
-def variational_circuit(latent_variables, weights, rotation_bases_all_layers=None):
+def variational_circuit(weights, latent_variables=None, rotation_bases_all_layers=None):
     # The number of wires is exactly equal to
     # the dimensionality of the latent variables.
 
@@ -41,12 +39,12 @@ def variational_circuit(latent_variables, weights, rotation_bases_all_layers=Non
     for i in range(len(weights)):
         layer(weights[i], rotation_bases_all_layers[i])
 
-    return [qml.expval(qml.PauliZ(i)) for i in range(len(latent_variables))]
+    return tuple([qml.expval(qml.PauliZ(i)) for i in range(len(latent_variables))])
 
 
 class QuantumGenerator(nn.Module):
 
-    def __init__(self, latent_dim, num_layers, upscaling_dimension, device):
+    def __init__(self, latent_dim, num_layers, data_dimension, device):
         super(QuantumGenerator, self).__init__()
 
         # We convert the variational quantum circuit to a pytorch qnode.
@@ -62,7 +60,7 @@ class QuantumGenerator(nn.Module):
         # We generate the rotation bases
         self.rotation_bases_all_layers = generate_rotation_bases(num_layers=num_layers, num_wires=latent_dim)
 
-        self.upscaling_dimension = upscaling_dimension
+        self.data_dimension = data_dimension
         # We initialize and store the quantum classifier's weights
         W = torch.Tensor(num_layers, latent_dim).uniform_(-np.pi, np.pi).to(self.device)
         # We specify that the quantum classifier weights parameters of the
@@ -72,13 +70,14 @@ class QuantumGenerator(nn.Module):
 
         # We define the upscaling layer, and we initialize it using the
         # glorot uniform weight initialization
-        self.upscaling_layer = nn.Linear(latent_dim, upscaling_dimension)
+
+        self.upscaling_layer = nn.Linear(latent_dim, data_dimension)
         xavier_uniform_(self.upscaling_layer.weight)
 
     def forward(self):
         # We define the latent variables, and pass them through a quantum generator.
         latent_variables = torch.Tensor(self.latent_dim).uniform_(-np.pi, np.pi).to(self.device)
-        quantum_out = self.vqc(latent_variables, self.quantum_weights, self.rotation_bases_all_layers).float().to(
+        quantum_out = self.vqc(self.quantum_weights, latent_variables, self.rotation_bases_all_layers).float().to(
             self.device)
         generated_sample = self.upscaling_layer(quantum_out)
         return generated_sample

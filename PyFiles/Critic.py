@@ -6,25 +6,20 @@ import numpy as scinp
 
 class Critic(nn.Module):
 
-    def __init__(self, data_dimension, hidden_dimensionality=None):
+    def __init__(self, data_dimension, hidden_layer_sizes):
         super(Critic, self).__init__()
 
-        if hidden_dimensionality is None:
-            hidden_dimensionality = [16, 8]
-
-        self.layer_dimensions = [data_dimension] + hidden_dimensionality + [1]
+        layer_sizes = [data_dimension] + hidden_layer_sizes + [1]
 
         layers = []
 
-        for i in range(len(self.layer_dimensions) - 1):
-            in_dim = self.layer_dimensions[i]
-            out_dim = self.layer_dimensions[i + 1]
-            linear_layer = nn.Linear(in_dim, out_dim)
-            xavier_uniform_(linear_layer.weight)
-            layers.append(linear_layer)
-            if i != len(self.layer_dimensions) - 2:
-               nn.ReLU()
-
+        for i in range(len(layer_sizes) - 1):
+            in_size = layer_sizes[i]
+            out_size = layer_sizes[i + 1]
+            layers.append(nn.Linear(in_size, out_size))
+            if i != len(layer_sizes) - 2:
+                #                layers.append(nn.LeakyReLU(0.2))
+                layers.append(nn.SiLU())
         self.network = nn.Sequential(*layers)
 
     def forward(self, x):
